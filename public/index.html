@@ -14,7 +14,10 @@
             display: inline-block;
         }
         img.active {
-            border: 2px solid red;
+            border: 2px solid yellow;
+            filter: none;
+        }
+        img.colored {
             filter: none;
         }
     </style>
@@ -52,6 +55,15 @@
                 img.src = src;
                 img.className = index === imageData.currentIndex ? 'active' : '';
                 container.appendChild(img);
+                //sulko vende patria
+                if (imageData.coloredIndexes && imageData.coloredIndexes.includes(index)) {
+            img.classList.add('colored');
+        }
+                if (index === imageData.currentIndex) {
+            img.classList.add('active');
+        }
+                container.appendChild(img);
+                //es de su talla???
             });
         }
 
