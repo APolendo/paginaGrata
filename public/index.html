@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sync Images con Selección de Dúo</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        #images-container img {
+            width: 150px;
+            height: 150px;
+            margin: 10px;
+            filter: grayscale(100%); /* Todas las imágenes en blanco y negro */
+            transition: filter 0.3s, border 0.3s;
+            border: 5px solid transparent; /* Sin contorno al inicio */
+        }
+
+        /* Cuando la imagen está seleccionada */
+        #images-container img.selected {
+            border-color: red; /* Contorno rojo para la imagen seleccionada */
+        }
+
+        /* Imágenes a color */
+        #images-container img.active {
+            filter: none; /* Quitar el filtro de blanco y negro */
+        }
+    </style>
+</head>
+<body>
+    <h1>Selecciona un Dúo para ver imágenes sincronizadas y seleccionarlas</h1>
+    
+    <!-- Menú desplegable para seleccionar un dúo -->
+    <select id="duoSelect">
+        <option value="">Selecciona un dúo</option>
+        <option value="duo1">Dúo 1</option>
+        <option value="duo2">Dúo 2</option>
+        <option value="duo3">Dúo 3</option>
+        <option value="duo4">Dúo 4</option>
+        <option value="duo5">Dúo 5</option>
+        <option value="duo6">Dúo 6</option>
+        <option value="duo7">Dúo 7</option>
+        <option value="duo8">Dúo 8</option>
+        <option value="duo9">Dúo 9</option>
+        <option value="duo10">Dúo 10</option>
+    </select>
+
+    <button id="shuffleBtn" disabled>Reordenar Imágenes</button>
+
+    <div id="images-container">
+        <img src="imagenes/CS.png" alt="Image 1">
+        <img src="imagenes/FG.png" alt="Image 2">
+        <img src="imagenes/FN.png" alt="Image 3">
+        <img src="imagenes/RL.png" alt="Image 4">
+        <img src="imagenes/WZ.png" alt="Image 5">
+        
+    </div>
+
+    <button id="nextBtn" disabled>Pasar a la siguiente imagen</button>
+
+    <script>
+        const socket = io();
+        const imagesContainer = document.getElementById('images-container');
+        const shuffleBtn = document.getElementById('shuffleBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const duoSelect = document.getElementById('duoSelect');
+        let selectedDuo = '';
+        let currentIndex = 0;
+
+        // Selecciona la primera imagen por defecto (deshabilitado hasta que se seleccione un dúo)
+        let images = document.querySelectorAll('#images-container img');
+
+        // Función para reordenar imágenes de manera aleatoria
+        function shuffleImages() {
+            images = Array.from(imagesContainer.children);
+            const shuffled = images.sort(() => Math.random() - 0.5);
+            imagesContainer.innerHTML = '';
+            shuffled.forEach(img => imagesContainer.appendChild(img));
+
+            // Enviar el nuevo orden al servidor para el dúo seleccionado
+            const order = shuffled.map(img => img.src);
+            socket.emit('reorder-images', { duo: selectedDuo, order });
+        }
+
+        // Función para pasar a la siguiente imagen
+        function nextImage() {
+            // Quitar la selección de la imagen actual
+            images[currentIndex].classList.remove('selected');
+            images[currentIndex].classList.add('active'); // Poner a color la imagen actual
+
+            // Mover al siguiente índice
+            currentIndex = (currentIndex + 1) % images.length;
+
+            // Seleccionar la nueva imagen
+            images[currentIndex].classList.add('selected');
+        }
+
+        // Manejar la selección de un dúo
+        duoSelect.addEventListener('change', () => {
+            selectedDuo = duoSelect.value;
+            if (selectedDuo) {
+                shuffleBtn.disabled = false;
+                nextBtn.disabled = false;
+                socket.emit('select-duo', selectedDuo); // Notifica al servidor qué dúo fue seleccionado
+            } else {
+                shuffleBtn.disabled = true;
+                nextBtn.disabled = true;
+            }
+        });
+
+        shuffleBtn.addEventListener('click', shuffleImages);
+        nextBtn.addEventListener('click', nextImage);
+
+        // Escuchar cuando otros clientes del mismo dúo envían el nuevo orden de imágenes
+        socket.on('reorder-images', (order) => {
+            images = Array.from(imagesContainer.children);
+            order.forEach((src, index) => {
+                images[index].src = src;
+            });
+        });
+    </script>
+</body>
+</html>
