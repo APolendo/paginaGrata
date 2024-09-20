@@ -13,7 +13,7 @@
             max-height: 150px;
             display: inline-block;
         }
-        img.selected {
+        img.active {
             border: 2px solid red;
             filter: none;
         }
@@ -41,80 +41,60 @@
 
     <script>
         const socket = io();
-        const images = [
-            '/imagenes/CS.png',
-            '/imagenes/FG.png',
-            '/imagenes/FN.png',
-            '/imagenes/RL.png',
-            '/imagenes/WZ.png'
-        ];
-        
-        let currentIndex = 0;
+        const duoSelect = document.getElementById('duo-select');
+        let duoId = duoSelect.value;
 
-        function loadImages() {
+        function loadImages(imageData) {
             const container = document.getElementById('images-container');
             container.innerHTML = '';
-            images.forEach((src, index) => {
+            imageData.images.forEach((src, index) => {
                 const img = document.createElement('img');
                 img.src = src;
-                img.id = `img-${index}`;
-                img.style.filter = currentIndex === index ? 'none' : 'grayscale(100%)';
+                img.className = index === imageData.currentIndex ? 'active' : '';
                 container.appendChild(img);
             });
         }
 
         function nextImage() {
-            currentIndex = (currentIndex + 1) % images.length;
-            loadImages();
+            socket.emit('next image', duoId);
         }
 
         function resetColors() {
-            currentIndex = 0;
-            loadImages();
+            socket.emit('reset colors', duoId);
         }
 
+        function shuffleImages() {
+            socket.emit('shuffle images', duoId);
+        }
+
+        window.onload = () => {
+            socket.emit('join duo', duoId);
+        };
+
         duoSelect.addEventListener('change', () => {
-            const selectedDuo = duoSelect.value;
-            socket.emit('join duo', selectedDuo);
-            loadImages();
+            duoId = duoSelect.value;
+            socket.emit('join duo', duoId);
         });
 
-        socket.on('duo full', () => {
-            alert('El dúo está lleno. No puedes unirte.');
+        socket.on('sync', (data) => {
+            loadImages(data);
         });
 
-        socket.on('duo joined', (duoId) => {
-            console.log(`Te uniste al dúo ${duoId}`);
+        socket.on('update image', (data) => {
+            loadImages(data);
         });
 
-        socket.on('update next image', () => {
-            nextImage();
+        socket.on('reset', (data) => {
+            loadImages(data);
         });
 
-        socket.on('colors reset', () => {
-            resetColors();
+        socket.on('shuffled', (data) => {
+            loadImages(data);
         });
 
-        socket.on('images shuffled', () => {
-            loadImages();
-        });
-
-        document.getElementById('next-btn').addEventListener('click', () => {
-            const selectedDuo = duoSelect.value;
-            socket.emit('next image', selectedDuo);
-        });
-
-        document.getElementById('reset-btn').addEventListener('click', () => {
-            const selectedDuo = duoSelect.value;
-            socket.emit('reset colors', selectedDuo);
-        });
-
-        document.getElementById('shuffle-btn').addEventListener('click', () => {
-            const selectedDuo = duoSelect.value;
-            socket.emit('shuffle images', selectedDuo);
-            resetColors();
-        });
-
+        document.getElementById('next-btn').addEventListener('click', nextImage);
+        document.getElementById('reset-btn').addEventListener('click', resetColors);
+        document.getElementById('shuffle-btn').addEventListener('click', shuffleImages);
     </script>
 </body>
 </html>
