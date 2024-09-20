@@ -1,36 +1,55 @@
 const express = require('express');
 const http = require('http');
-const { Server } = require('socket.io');
-
+const socketIo = require('socket.io');
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = socketIo(server);
+
+const PORT = process.env.PORT || 3000;
 
 app.use(express.static('public'));
 
-const duos = {}; 
+let duos = {};
 
 io.on('connection', (socket) => {
-    console.log('a user connected');
+    console.log('Un cliente se ha conectado:', socket.id);
 
-    socket.on('select-duo', (duo) => {
-        socket.join(duo); 
-        if (duos[duo]) {
-           
-            socket.emit('reorder-images', duos[duo]);
+    socket.on('join duo', (duoId) => {
+        if (!duos[duoId]) {
+            duos[duoId] = [];
+        }
+
+        if (duos[duoId].length < 2) {
+            duos[duoId].push(socket.id);
+            socket.join(duoId);
+            socket.emit('duo joined', duoId);
+            console.log(`Cliente ${socket.id} se unió al dúo ${duoId}`);
+        } else {
+            socket.emit('duo full', duoId);
+            console.log(`Dúo ${duoId} está lleno`);
         }
     });
 
-    socket.on('reorder-images', ({ duo, order }) => {
-        duos[duo] = order; 
-        io.to(duo).emit('reorder-images', order); 
+    socket.on('next image', (duoId) => {
+        socket.to(duoId).emit('update next image');
+    });
+
+    socket.on('reset colors', (duoId) => {
+        socket.to(duoId).emit('colors reset');
+    });
+
+    socket.on('shuffle images', (duoId) => {
+        socket.to(duoId).emit('images shuffled');
     });
 
     socket.on('disconnect', () => {
-        console.log('user disconnected');
+        console.log('Un cliente se ha desconectado:', socket.id);
+        for (let duoId in duos) {
+            duos[duoId] = duos[duoId].filter(id => id !== socket.id);
+        }
     });
 });
 
-server.listen(3000, () => {
-    console.log('Server is running on http://localhost:3000');
+server.listen(PORT, () => {
+    console.log(`Servidor escuchando en http://localhost:${PORT}`);
 });
