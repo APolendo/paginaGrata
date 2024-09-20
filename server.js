@@ -8,22 +8,22 @@ const io = new Server(server);
 
 app.use(express.static('public'));
 
-const duos = {}; // Objeto para almacenar los dúos y el orden de imágenes
+const duos = {}; 
 
 io.on('connection', (socket) => {
     console.log('a user connected');
 
     socket.on('select-duo', (duo) => {
-        socket.join(duo); // El usuario se une a la "sala" del dúo seleccionado
+        socket.join(duo); 
         if (duos[duo]) {
-            // Si ya hay un orden de imágenes para ese dúo, se lo enviamos al usuario que acaba de entrar
+           
             socket.emit('reorder-images', duos[duo]);
         }
     });
 
     socket.on('reorder-images', ({ duo, order }) => {
-        duos[duo] = order; // Guardamos el nuevo orden de las imágenes para el dúo seleccionado
-        io.to(duo).emit('reorder-images', order); // Enviamos el nuevo orden solo a los usuarios del dúo
+        duos[duo] = order; 
+        io.to(duo).emit('reorder-images', order); 
     });
 
     socket.on('disconnect', () => {
