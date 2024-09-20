@@ -46,7 +46,11 @@ io.on('connection', (socket) => {
             io.to(duoId).emit('update image', duoStates[duoId]);
         }
     });
-
+    // estoy 60% seguro de que esto funciona
+    socket.on('update image', (data) => {
+        loadImages(data);
+    });
+    //aqui termina
     socket.on('reset colors', (duoId) => {
         if (duoStates[duoId]) {
             duoStates[duoId].currentIndex = 0;
